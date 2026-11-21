@@ -1,0 +1,16 @@
+﻿# Python / FastAPI / SQLite
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.db
+*.sqlite3
+
+# Node / React / Vite
+node_modules/
+dist/
+build/
+
+# Environment & OS files
+.env
+.DS_Store

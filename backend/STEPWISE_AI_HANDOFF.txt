@@ -1,0 +1,363 @@
+STEPWISE PROJECT HANDOFF — PORTABLE CONTEXT FOR ANOTHER AI
+================================================================
+Prepared: 11 November 2026 (Asia/Calcutta)
+
+HOW TO USE THIS FILE
+--------------------
+Give this file to another AI and say: "Read this handoff fully, then inspect the
+current project files before making changes. Treat the code as the source of
+truth if it differs from this summary. Continue helping me with the StepWise
+project."
+
+This is a project and conversation summary, not a replacement for the source
+code. It intentionally does not contain passwords, private secret keys, email
+credentials, or other secrets.
+
+
+1. PROJECT IDENTITY AND PURPOSE
+-------------------------------
+Name: StepWise — An Interactive Local Socratic Tutoring System Powered by
+Large Language Models.
+
+Student/submitter: Yash Gangwar (24UCOMP058), Undergraduate Computer Science
+Engineering student at Central University of Karnataka, Kalaburagi.
+Project guide: Dr. Madhuri Kagale R, Assistant Professor, Department of
+Computer Science.
+
+Purpose: a local-first tutoring application. A learner asks a question and a
+locally hosted Ollama model is prompted to guide the learner with hints and
+focused questions instead of immediately supplying a complete solution. The
+project is intended as an academic demonstration/research prototype. Socratic
+behavior depends on the model and is not guaranteed to be perfect for every
+prompt.
+
+The project's academic context includes research comparing Socratic
+questioning with direct-answer commercial models (including work cited by the
+student such as Friedman et al. and Fakour & Imani, 2025). Ask the student for
+their bibliography/source files before inventing formal citations.
+
+
+2. REPOSITORY / DEVELOPMENT ENVIRONMENT
+---------------------------------------
+Windows project directory: C:\Users\gangw\stepwise
+Backend directory:         C:\Users\gangw\stepwise\backend
+Frontend directory:        C:\Users\gangw\stepwise\frontend
+
+The IDE commonly has frontend\src\components\WelcomePage.jsx open, but the
+active terminal/work directory can be backend. Backend and frontend are
+separate Git repositories/worktrees in this setup (each has its own .git).
+Check each repository's git status before making assumptions about changes.
+
+Current tracked/untracked modifications were present when this handoff was
+written. Do not discard, reset, or overwrite them without inspecting them:
+
+Backend status seen:
+  Modified: README.md, ai_engine.py, database.py, main.py, models.py,
+            tests/test_ai_engine.py, tests/test_phase1_features.py
+  Untracked: docs/, learning_support.py, seed_demo_data.py
+
+Frontend status seen:
+  Modified: README.md, package-lock.json, package.json, src/api.js,
+            src/components/AuthPanel.jsx, src/components/ChatInterface.jsx,
+            src/components/StepWiseApp.jsx, src/index.css
+  Untracked: src/components/LearningInsights.jsx,
+             src/components/PeerBlindspotRoom.jsx,
+             src/components/WelcomePage.jsx
+
+These statuses may change after the handoff was created. Always run git status
+in both folders when continuing. Never include .env, database files, user data,
+or credentials in a public commit.
+
+
+3. TECHNOLOGY AND ARCHITECTURE
+------------------------------
+Frontend:
+  - React 19 + Vite, JavaScript/JSX, CSS.
+  - Axios/fetch API calls.
+  - React Markdown, GFM, remark-math, KaTeX.
+  - PDF.js extracts selectable text in the browser.
+  - Browser Web Speech API provides speech-to-text when available.
+
+Backend:
+  - Python FastAPI, Pydantic validation, SQLAlchemy ORM, SQLite.
+  - JWT-based auth; password hashing via Passlib.
+  - Ollama Python client calls the configured local model (default
+    STEPWISE_OLLAMA_MODEL=gemma4:e2b).
+  - POST /api/chat/stream returns Server-Sent Events (SSE) for token streaming.
+  - WebSockets power temporary peer rooms.
+
+Data path:
+  Browser (React/Vite) <-> FastAPI <-> SQLAlchemy <-> SQLite
+                                  |
+                                  +---- Ollama local service/model
+
+The app does not use a hosted LLM API for tutor inference. It requires Ollama
+and the configured model to be installed/running for live tutor generation.
+SQLite defaults to backend/stepwise.db (local development storage).
+
+
+4. IMPLEMENTED FEATURES IN THE CURRENT CODEBASE
+-----------------------------------------------
+Core student experience:
+  - Landing/welcome page with a dark, animated/orbit-style visual design and
+    an interactive sample tutor preview. Logged-in users can continue to the
+    studio; logged-out users can open authentication.
+  - Student registration/sign-in and current-user profile.
+  - Password reset flow. SMTP enables email delivery. For local loopback use,
+    a reset link can be returned without SMTP; remote reset requires SMTP.
+  - Chat creation, listing, opening, and deletion (owner-only backend check,
+    with confirmation in the UI).
+  - Subject selection and optional faculty syllabus context.
+  - Current subject choices are Algorithms, LAW, Biology, DBMS, and Mathematics.
+    Existing chats using the prior label "Constitution of India" remain readable
+    and are treated as LAW for tutor scope. Clear cross-subject prompts are
+    conservatively detected and redirected before local inference; generic or
+    ambiguous wording may not be classified perfectly.
+  - Socratic local-model response generation, both normal and streamed.
+  - Streaming sends chunks to the frontend and persists the final assistant
+    message.
+  - Conversation branching: messages have a self-referential
+    parent_message_id. Editing a prior student message creates another path
+    while retaining the old branch.
+  - Adaptive learner-support/frustration tracking, including repeated stuck
+    prompts, with escalating guidance in learning_support.py and ai_engine.py.
+  - Prompt hardening: conversation messages are treated as untrusted history;
+    the tutor system instructions are reasserted to resist requests to abandon
+    Socratic behavior or disclose full answers.
+  - Markdown/math rendering, code formatting/highlighting and copy controls.
+  - Browser voice input (speech-to-text), subject to browser/microphone
+    support.
+  - Text/code and PDF attachments. Browser extracts attachment text and adds
+    it to the chat prompt; there is no independent upload store.
+  - Learning Insights: misconception classification/logging plus friendly
+    phrases, frequency labels and next-step advice instead of raw technical
+    labels/percentages.
+  - Peer Blindspot Rooms: temporary, two-participant WebSocket rooms with
+    anonymous learner aliases, shared code/chat and local LLM facilitator
+    prompts. Room data is in memory and expires; it is not durable/persisted.
+  - Faculty syllabus mappings for subject/module/chapter/persona context.
+  - Demo data seeder (`backend/seed_demo_data.py`) for sample chats and
+    misconception patterns (inspect script before running against any real DB).
+
+User-interface updates already requested in this conversation:
+  - LLM runtime settings dashboard/controls were explained with temperature
+    and top_p examples, then user requested removing the whole settings item.
+    Do not re-add an LLM settings dashboard without the user's request.
+  - Welcome-page floating number callouts "1" and "2" were considered untidy;
+    those floating callouts were removed/aligned.
+  - Chat input draft should clear after sending rather than remain visible in
+    the typing area.
+  - Learning insight labels should be plain-language and encouraging.
+
+
+5. CURRENT DATABASE MODEL (backend/models.py)
+---------------------------------------------
+User:
+  id, email (unique), full_name, hashed_password, role, is_active, created_at.
+  Owns conversations, syllabus mappings and misconception logs.
+
+Conversation:
+  id, user_id FK, title, subject, frustration_score, consecutive_loops,
+  created_at, updated_at. Owns messages and misconception logs.
+
+Message:
+  id, conversation_id FK, parent_message_id self-FK nullable, role, content,
+  created_at. Parent-child relation represents alternative conversation paths.
+
+SyllabusMapping:
+  id, user_id FK, subject, module, chapter, persona, created_at.
+
+MisconceptionLog:
+  id, user_id FK, conversation_id FK, source_message_id nullable FK,
+  category_code, confidence, is_sample, created_at.
+
+Database initialization/migrations are in backend/database.py. It creates the
+tables and includes lightweight SQLite column migrations for older databases.
+
+
+6. KEY BACKEND ROUTES / FLOWS
+-----------------------------
+Health:
+  GET  /
+
+Authentication:
+  POST /api/auth/register
+  POST /api/auth/login
+  POST /api/auth/password-reset/request
+  POST /api/auth/password-reset/confirm
+  GET  /api/users/me
+
+Conversation/chat:
+  POST   /api/conversations
+  GET    /api/conversations
+  GET    /api/conversations/{conversation_id}
+  DELETE /api/conversations/{conversation_id}
+  POST   /api/chat
+  POST   /api/chat/stream  (SSE)
+  POST   /api/messages/{message_id}/edit
+
+Learning/faculty/collaboration:
+  GET/POST /api/learning-insights and related insight flow
+  GET/POST /api/syllabus/mappings
+  POST /api/peer-rooms
+  POST /api/peer-rooms/demo-moderator
+  DELETE /api/peer-rooms/{code}
+  WebSocket /ws/peer-room/{code}
+
+For exact request/response behavior, inspect backend/main.py and frontend/src/api.js.
+
+
+7. PHASE PLAN AND COMPLETION BOUNDARIES
+---------------------------------------
+Phase 1 MVP / submission scope:
+  - Local Socratic tutoring with Ollama.
+  - Real-time response streaming (SSE).
+  - Conversation persistence and edit/branch behavior.
+  - Rich chat display including code and math.
+  - Local demo/account flow, practical attachments and voice input added in
+    response to the student's later requests.
+  - Helpful Learning Insights/adaptive frustration support and peer-room demo
+    capabilities were also added after the original roadmap was expanded.
+
+The student requested making the project robust for academic submission,
+adding sample data and chat, deleting chats, PDF support, a welcome landing
+experience, plain-language Learning Insights, and diagrams for the guide.
+
+Future/research extensions (do not claim these are implemented):
+  - RAG with ChromaDB and curriculum-aligned retrieval.
+  - Structured knowledge graph.
+  - Docker-based code execution sandbox.
+  - Local Whisper.cpp speech recognition (current voice is browser speech API).
+  - Image/vision/multimodal screenshot understanding.
+  - Persistent multi-user study rooms (current peer rooms are ephemeral,
+    two-participant, in-memory).
+  - Faculty telemetry/analytics dashboard.
+
+
+8. DIAGRAMS CREATED IN THE MOST RECENT TURN
+-------------------------------------------
+File: backend/docs/project-diagrams.md
+Linked from: backend/README.md
+
+It includes Mermaid source for:
+  - System context diagram.
+  - DFD Level 0 and Level 1.
+  - ERD based on SQLAlchemy models.
+  - UML use-case diagram.
+  - UML class diagram.
+  - UML sequence diagram for a streamed tutoring exchange.
+  - Current implementation vs future scope and ephemeral-data notes.
+
+The diagrams were derived by inspecting current models, route names, frontend
+API, chat code, and README. The Mermaid has not been rendered by a dedicated
+diagram renderer yet; if preparing final printable images, render and visually
+inspect each diagram. Make sure future scope remains clearly distinguished.
+
+
+9. SETUP AND RUNNING LOCALLY (WINDOWS POWERSHELL)
+-------------------------------------------------
+Prerequisites: Python 3.10+, Node.js version compatible with Vite (README
+currently lists Node 20.19+ or 22.12+), Ollama, and the configured model.
+
+One-time backend setup, from project root:
+  cd backend
+  py -3 -m venv .venv
+  .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+  Copy-Item .env.example .env
+
+Set a private random STEPWISE_SECRET_KEY in backend/.env. A development key
+must not be used in production. Optional settings include database URL, model,
+CORS origins, SMTP configuration, and faculty invite code.
+
+Ensure Ollama is running and model exists:
+  ollama pull gemma4:e2b
+If Ollama is not installed as a background service, run `ollama serve` in a
+separate terminal. A different locally installed model can be set in
+STEPWISE_OLLAMA_MODEL.
+
+Start backend in one terminal (from backend folder):
+  .\.venv\Scripts\uvicorn.exe main:app --reload --host 127.0.0.1 --port 8000
+
+Start frontend in a second terminal (from frontend folder):
+  npm ci
+  npm run dev
+
+Open the URL Vite prints, usually http://127.0.0.1:5173 or
+http://localhost:5173. Use the exact port printed in the frontend terminal;
+Vite may choose a different port if 5173 is busy. Backend API docs:
+http://127.0.0.1:8000/docs.
+
+If a backend port bind error such as WinError 10013 occurs, first check if a
+backend process is already listening. Do not launch duplicate Uvicorn servers
+on the same host/port. Stop the server with Ctrl+C in its running terminal.
+Previously observed local backend listener was PID 2200 on 127.0.0.1:8000;
+this is historical and may not be running now.
+
+
+10. TEST / QUALITY CHECK COMMANDS
+---------------------------------
+Backend (from backend):
+  .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+  .\.venv\Scripts\python.exe -m pytest -q
+
+Frontend (from frontend):
+  npm run lint
+  npm run build
+
+The live Ollama pedagogical compliance evaluation is opt-in and requires
+STEPWISE_RUN_LIVE_EVAL=1 plus a running Ollama/model. Ordinary automated tests
+should avoid requiring a running live LLM where possible.
+
+The conversation history contains past reports that lint/build and some tests
+were run during earlier work, but this handoff snapshot includes uncommitted
+backend/frontend changes. Therefore, a new AI should re-run the relevant checks
+before claiming the current checkout is clean or error-free. The student has
+previously asked for tests and a fully working Phase 1, so testing is authorized
+when continuing implementation or validation tasks.
+
+
+11. FILES TO READ FIRST
+-----------------------
+Backend:
+  backend/main.py                 API routes, auth, chat, SSE, peers
+  backend/models.py               SQLAlchemy entities and relationships
+  backend/database.py             SQLite engine and lightweight migrations
+  backend/ai_engine.py            Socratic prompt and model calls
+  backend/learning_support.py     Adaptive support/frustration logic
+  backend/subject_scope.py        Supported subject names and mismatch guard
+  backend/tests/                  Automated tests
+  backend/seed_demo_data.py       Sample/demo data seeder
+  backend/docs/project-diagrams.md Current Mermaid diagrams
+  backend/README.md               Setup/configuration
+
+Frontend:
+  frontend/src/App.jsx
+  frontend/src/components/StepWiseApp.jsx
+  frontend/src/components/WelcomePage.jsx
+  frontend/src/components/ChatInterface.jsx
+  frontend/src/components/AuthPanel.jsx
+  frontend/src/components/LearningInsights.jsx
+  frontend/src/components/PeerBlindspotRoom.jsx
+  frontend/src/components/FacultyPanel.jsx
+  frontend/src/api.js
+  frontend/src/index.css and frontend/src/App.css
+  frontend/README.md
+
+
+12. IMPORTANT COLLABORATION PREFERENCES / SAFETY
+------------------------------------------------
+- Explain things simply when the student asks for a simple explanation.
+- Continue from the current workspace; do not make the student restate this
+  project context.
+- Inspect current code and Git status before changes. Preserve uncommitted work.
+- Do not claim "zero errors" or "fully complete" without running appropriate
+  checks and stating what was/wasn't checked.
+- Do not add the removed LLM settings UI unless asked.
+- Do not publish secrets, personal account data, database files, or local .env.
+- For code changes, communicate briefly, make the requested change, and report
+  changed files and verification results.
+- Current known constraints: model quality/hardware, SMTP for remote password
+  reset, browser support for speech recognition, selectable-text-only PDFs,
+  in-memory temporary peer-room state, and no durable file upload store.
+
+END OF HANDOFF
